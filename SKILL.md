@@ -1,22 +1,22 @@
 ---
 name: spotify-playlist
-description: Use when the user wants to create a Spotify playlist from an explicit list of tracks, a text file, YouTube URLs, or Spotify track links. Also use for creative modes: photo or image to playlist based on visual mood/vibe, vinyl record collection scan (photo, multiple photos, or video) to Spotify playlist, acrostic playlist where song titles spell out a message, film vibe playlist, or emotional brief/letter translated to music. Triggers on "spotify playlist", "mach mir ne playlist", "playlist aus dieser liste", "tracks zu playlist", "vinyl to spotify", "platten scannen", "foto zur playlist", "akrostix playlist", "song titles spell", "playlist for this photo", or any URL/track-list-to-playlist request.
+description: Use when the user wants to build a Spotify playlist from any source — an explicit track list (text, file, Spotify URLs, YouTube URLs), a photo whose mood should become a playlist, a vinyl shelf scanned via photo or video, a hidden message that song titles should spell out, a film whose vibe should be captured, or an emotional message translated into music. Triggers on "spotify playlist", "create playlist", "playlist from these tracks", "playlist from this photo", "vinyl to spotify", "scan my records", "song titles spell", "playlist that says", or any natural request to turn input into a Spotify playlist.
 ---
 
 # Spotify Playlist — All Modes
 
-Exact-track playlist builder + creative playlist generator for Spotify. Uses Spotify Web API via spotipy with user's own OAuth token. Requires `~/.config/spotify-skill/credentials.json`.
+Turns anything into a Spotify playlist. Uses the Spotify Web API via spotipy and the user's own OAuth token. Requires `~/.config/spotify-skill/credentials.json`.
 
-## Mode Overview
+## Mode Map
 
 | Trigger | Mode | Script |
 |---------|------|--------|
 | list of tracks / links | **Standard** | `playlist.py` |
-| photo / image → mood | **Photo Vibe** | `photo_playlist.py` |
+| photo / image | **Photo Vibe** | `photo_playlist.py` |
 | vinyl photo / shelf video | **Vinyl Scanner** | `vinyl_scanner.py` |
-| "titles spell X" | **Acrostic** | `acrostic.py` |
-| film name → vibe | **Film Vibe** | `photo_playlist.py --vibe` |
-| emotional text / brief | **Letter** | `photo_playlist.py --vibe` |
+| "titles spell ..." | **Spellout** | `spellout.py` |
+| film name | **Film Vibe** | `photo_playlist.py --vibe` |
+| emotional text / letter | **Letter** | `photo_playlist.py --vibe` |
 
 ---
 
@@ -29,7 +29,7 @@ python3 ~/.claude/skills/spotify-playlist/playlist.py \
   --name "Playlist Name" --input /tmp/tracks.txt
 ```
 
-**Input format** (one per line, `#` = comment):
+Input format (one per line, `#` = comment):
 ```
 Daft Punk - Around the World
 https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
@@ -43,7 +43,7 @@ YouTube URLs require `yt-dlp` (`pip install yt-dlp`).
 
 ## Mode 2 — Photo / Image → Playlist
 
-**User sends a photo.** Claude analyzes it and builds a mood playlist.
+User sends a photo. Claude analyzes it and builds a mood playlist.
 
 **Claude's role:**
 1. Read the image with the Read tool
@@ -67,7 +67,7 @@ python3 ~/.claude/skills/spotify-playlist/photo_playlist.py \
 
 ## Mode 3 — Vinyl Collection Scanner
 
-**User sends photo(s) of vinyl shelf or a video panning along a collection.**
+User sends photo(s) of vinyl shelf or a video panning along a collection.
 
 ### Single photo (one or many records visible)
 1. Read the image
@@ -109,17 +109,15 @@ ffmpeg -i /path/to/video.mp4 -vf fps=1/3 /tmp/vinyl_frames/frame_%04d.jpg -y 2>/
 
 ---
 
-## Mode 4 — Acrostic: Song Titles Spell a Message
+## Mode 4 — Spellout: Song Titles Spell a Message
 
-**User wants song titles to spell out a word, phrase, or sentence.**
-
-Two sub-modes:
+User wants song titles to spell out a word, phrase, or sentence.
 
 ### Word mode (recommended)
 Each WORD in the target text = a song title (or a song starting with that word).
 
 ```bash
-python3 ~/.claude/skills/spotify-playlist/acrostic.py \
+python3 ~/.claude/skills/spotify-playlist/spellout.py \
   --text "I love you" \
   --mode word \
   --name "Secret Message"
@@ -129,13 +127,13 @@ python3 ~/.claude/skills/spotify-playlist/acrostic.py \
 First LETTER of each song title spells the text (harder, more misses).
 
 ```bash
-python3 ~/.claude/skills/spotify-playlist/acrostic.py \
+python3 ~/.claude/skills/spotify-playlist/spellout.py \
   --text "MARCO" \
   --mode letter \
   --name "For Marco"
 ```
 
-**Output includes `suggestions`** — if a word/letter didn't match perfectly, the script proposes slight text edits that would work. **Always show these to the user** and offer to rebuild with adjusted text.
+Output includes `suggestions` — if a word/letter didn't match perfectly, the script proposes slight text edits that would work. **Always show these to the user** and offer to rebuild with adjusted text.
 
 Example: "I love you" → `love` matched loosely → suggestion: use `adore` instead → ask user if they want to rebuild.
 
@@ -161,7 +159,7 @@ python3 ~/.claude/skills/spotify-playlist/photo_playlist.py \
 
 ---
 
-## Mode 6 — Emotional Brief / Letter as Playlist
+## Mode 6 — Emotional Message / Letter as Playlist
 
 User writes a message or emotional situation. Claude translates it to music.
 
@@ -204,5 +202,5 @@ brew install ffmpeg  # for video frame extraction
 | 403 Forbidden on playlist create | Add your email in Spotify Dashboard → User Management |
 | Token expired | Delete `~/.config/spotify-skill/token.json`, re-run |
 | Wrong track matched | Make input line more specific: add year or album |
-| Acrostic word not found | Accept suggestion, rebuild with adjusted text |
+| Spellout word not found | Accept suggestion, rebuild with adjusted text |
 | ffmpeg not found | `brew install ffmpeg` |
