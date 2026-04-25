@@ -1,80 +1,208 @@
 ---
 name: spotify-playlist
-description: Use when the user wants to create a Spotify playlist from an explicit list of tracks, a text file, YouTube URLs, or Spotify track links. Searches each entry on Spotify, builds the playlist with exact matches, and reports anything not found. Triggers on "spotify playlist", "mach mir ne playlist", "playlist aus dieser liste", "tracks zu playlist", or any URL/track-list-to-playlist request.
+description: Use when the user wants to create a Spotify playlist from an explicit list of tracks, a text file, YouTube URLs, or Spotify track links. Also use for creative modes: photo or image to playlist based on visual mood/vibe, vinyl record collection scan (photo, multiple photos, or video) to Spotify playlist, acrostic playlist where song titles spell out a message, film vibe playlist, or emotional brief/letter translated to music. Triggers on "spotify playlist", "mach mir ne playlist", "playlist aus dieser liste", "tracks zu playlist", "vinyl to spotify", "platten scannen", "foto zur playlist", "akrostix playlist", "song titles spell", "playlist for this photo", or any URL/track-list-to-playlist request.
 ---
 
-# Spotify Playlist Builder
+# Spotify Playlist — All Modes
 
-Builds a Spotify playlist from an explicit input list — not the generative MCP `create_playlist` (which guesses tracks). Uses Spotify Web API via spotipy with the user's own OAuth token.
+Exact-track playlist builder + creative playlist generator for Spotify. Uses Spotify Web API via spotipy with user's own OAuth token. Requires `~/.config/spotify-skill/credentials.json`.
 
-## When to use
+## Mode Overview
 
-- User provides a list of tracks (in chat, as a file, or pasted) and wants them as a Spotify playlist
-- User shares YouTube/Spotify URLs and wants them collected
-- User says "create playlist with these songs" / "mach playlist aus..."
+| Trigger | Mode | Script |
+|---------|------|--------|
+| list of tracks / links | **Standard** | `playlist.py` |
+| photo / image → mood | **Photo Vibe** | `photo_playlist.py` |
+| vinyl photo / shelf video | **Vinyl Scanner** | `vinyl_scanner.py` |
+| "titles spell X" | **Acrostic** | `acrostic.py` |
+| film name → vibe | **Film Vibe** | `photo_playlist.py --vibe` |
+| emotional text / brief | **Letter** | `photo_playlist.py --vibe` |
 
-**Do NOT use** the Spotify MCP `create_playlist` for these — it's prompt-based and will swap/miss tracks.
+---
 
-## One-time setup
+## Mode 1 — Standard: Track List
 
-If `~/.config/spotify-skill/credentials.json` does not exist:
-
-1. Tell the user to create a Spotify app at https://developer.spotify.com/dashboard
-2. Settings → add Redirect URI: `http://127.0.0.1:8888/callback` (Spotify rejects `localhost` as insecure; use the IP)
-3. Copy Client ID + Client Secret
-4. Write `~/.config/spotify-skill/credentials.json`:
-   ```json
-   {"client_id": "...", "client_secret": "...", "redirect_uri": "http://127.0.0.1:8888/callback"}
-   ```
-5. First run will open the browser for authorization (one time). Token caches at `~/.config/spotify-skill/token.json`.
-
-## Usage
-
-Write the user's list to a temp file, then run:
+Input: text lines, Spotify URLs, YouTube URLs, or mixed.
 
 ```bash
 python3 ~/.claude/skills/spotify-playlist/playlist.py \
-  --name "Playlist Name" \
-  --input /tmp/tracks.txt \
-  --description "optional"
+  --name "Playlist Name" --input /tmp/tracks.txt
 ```
 
-Add `--public` for a public playlist (default: private).
-
-You can also pipe via stdin:
-```bash
-cat tracks.txt | python3 ~/.claude/skills/spotify-playlist/playlist.py --name "..."
-```
-
-## Input format
-
-One entry per line, blanks and `#` comments ignored. Mix freely:
-
+**Input format** (one per line, `#` = comment):
 ```
 Daft Punk - Around the World
 https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
-spotify:track:7ouMYWpwJ422jRcDASZB7P
 https://youtu.be/dQw4w9WgXcQ
 Bohemian Rhapsody by Queen
 ```
 
-- Spotify URLs/URIs → used directly
-- Other URLs → `yt-dlp --get-title` → searched on Spotify
-- Plain text → searched as-is, top match wins
+YouTube URLs require `yt-dlp` (`pip install yt-dlp`).
 
-## Output
+---
 
-JSON to stdout with `playlist_url`, `added` count, and `missing` list. Per-track ✓/✗ to stderr.
+## Mode 2 — Photo / Image → Playlist
 
-**Always show the user:**
-- The playlist URL (clickable)
-- The list of any missing tracks so they can correct/retry
+**User sends a photo.** Claude analyzes it and builds a mood playlist.
 
-## Common issues
+**Claude's role:**
+1. Read the image with the Read tool
+2. Extract: overall vibe (2-3 sentences), dominant colors/mood, era/decade if inferable, energy level (slow/medium/fast)
+3. Write vibe as a comma-separated descriptor string, e.g.:
+   `"warm, melancholic, urban twilight, 1970s soul influence, slow"`
+4. Run:
+
+```bash
+python3 ~/.claude/skills/spotify-playlist/photo_playlist.py \
+  --name "Playlist Name" \
+  --vibe "warm, melancholic, urban twilight, 1970s soul" \
+  --era "1970s" \
+  --bpm slow
+```
+
+**BPM:** `slow` / `medium` / `fast`
+**Era:** `1960s`, `1970s`, `1980s`, `1990s`, `2000s`, `2010s`, `2020s` (optional)
+
+---
+
+## Mode 3 — Vinyl Collection Scanner
+
+**User sends photo(s) of vinyl shelf or a video panning along a collection.**
+
+### Single photo (one or many records visible)
+1. Read the image
+2. Scan systematically left→right, top→bottom
+3. List every visible artist + album: `Artist - Album`
+4. Write to `/tmp/vinyl_records.txt`
+5. Run:
+
+```bash
+python3 ~/.claude/skills/spotify-playlist/vinyl_scanner.py \
+  --name "My Vinyl Collection" \
+  --input /tmp/vinyl_records.txt \
+  --mode tracks \
+  --dedupe
+```
+
+### Multiple photos (folder or list of files)
+1. Read each image in sequence
+2. Append all recognized records to one list
+3. Run with `--dedupe` to remove records visible in multiple photos
+
+### Video (shelf pan, walkthrough)
+1. Extract frames with ffmpeg (one frame every 3 seconds):
+
+```bash
+mkdir -p /tmp/vinyl_frames
+ffmpeg -i /path/to/video.mp4 -vf fps=1/3 /tmp/vinyl_frames/frame_%04d.jpg -y 2>/dev/null
+```
+
+2. List the frames: `ls /tmp/vinyl_frames/`
+3. Read each frame image with the Read tool
+4. Collect all recognized records → write to `/tmp/vinyl_records.txt`
+5. Run with `--dedupe` (same cover visible across multiple frames)
+
+**Mode options:**
+- `--mode tracks` — 1 most popular track per album (default)
+- `--mode both` — 3 most popular tracks per album
+- `--mode album` — full album
+
+---
+
+## Mode 4 — Acrostic: Song Titles Spell a Message
+
+**User wants song titles to spell out a word, phrase, or sentence.**
+
+Two sub-modes:
+
+### Word mode (recommended)
+Each WORD in the target text = a song title (or a song starting with that word).
+
+```bash
+python3 ~/.claude/skills/spotify-playlist/acrostic.py \
+  --text "I love you" \
+  --mode word \
+  --name "Secret Message"
+```
+
+### Letter mode
+First LETTER of each song title spells the text (harder, more misses).
+
+```bash
+python3 ~/.claude/skills/spotify-playlist/acrostic.py \
+  --text "MARCO" \
+  --mode letter \
+  --name "For Marco"
+```
+
+**Output includes `suggestions`** — if a word/letter didn't match perfectly, the script proposes slight text edits that would work. **Always show these to the user** and offer to rebuild with adjusted text.
+
+Example: "I love you" → `love` matched loosely → suggestion: use `adore` instead → ask user if they want to rebuild.
+
+---
+
+## Mode 5 — Film Vibe
+
+Claude interprets the film's emotional arc, era, and genre.
+
+**Claude's role:**
+1. Analyze: film era, dominant mood, energy arc (slow build? intense throughout?), cultural context
+2. Build vibe string + era
+3. Call `photo_playlist.py` same as Mode 2
+
+Example for "Goodfellas":
+```bash
+python3 ~/.claude/skills/spotify-playlist/photo_playlist.py \
+  --name "Goodfellas Vibe" \
+  --vibe "swaggering, urban, dangerous elegance, Italian-American cool, high energy with dark undertones" \
+  --era "1970s" \
+  --bpm medium
+```
+
+---
+
+## Mode 6 — Emotional Brief / Letter as Playlist
+
+User writes a message or emotional situation. Claude translates it to music.
+
+**Claude's role:**
+1. Read the emotional content carefully
+2. Extract: core feeling, relational context, energy, resolution (open/closed)
+3. Build vibe string that *encodes* the emotion, not just describes it
+4. Call `photo_playlist.py`
+
+Example: "I've been missing someone for months and I don't know if they'll come back":
+```bash
+python3 ~/.claude/skills/spotify-playlist/photo_playlist.py \
+  --name "Unsent Letter" \
+  --vibe "longing, suspended time, quiet hope, late night introspection, soft melancholy" \
+  --bpm slow
+```
+
+---
+
+## Setup (one-time)
+
+Credentials at `~/.config/spotify-skill/credentials.json`:
+```json
+{"client_id": "...", "client_secret": "...", "redirect_uri": "http://127.0.0.1:8888/callback"}
+```
+
+Add yourself in Spotify Dashboard → User Management.
+First run opens browser once for OAuth. Token cached at `~/.config/spotify-skill/token.json`.
+
+**Install:**
+```bash
+pip install spotipy yt-dlp
+brew install ffmpeg  # for video frame extraction
+```
+
+## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| `Missing credentials.json` | Run setup above |
-| Wrong cover/version picked | Make the input line more specific: include album or year |
-| YouTube title messy | Strip "(Official Video)" etc. or replace with `Artist - Track` plain text |
+| 403 Forbidden on playlist create | Add your email in Spotify Dashboard → User Management |
 | Token expired | Delete `~/.config/spotify-skill/token.json`, re-run |
+| Wrong track matched | Make input line more specific: add year or album |
+| Acrostic word not found | Accept suggestion, rebuild with adjusted text |
+| ffmpeg not found | `brew install ffmpeg` |
