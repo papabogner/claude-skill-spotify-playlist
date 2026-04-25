@@ -6,7 +6,7 @@ A Claude Code skill that builds Spotify playlists from whatever you throw at it 
 
 ```
    ╔══════════════════════════════════════════════════╗
-   ║    LIST   PHOTO   VINYL   SPELLOUT   FILM   LETTER  ║
+   ║    LIST   PHOTO   VINYL   MESSAGE   FILM   LETTER   ║
    ║      └──────┴───────┴────┬─────┴──────┴──────┘      ║
    ║                          ▼                          ║
    ║                  ▶ SPOTIFY PLAYLIST                 ║
@@ -45,10 +45,10 @@ One photo of a few records, multiple shots of the whole shelf, or a video pannin
 
 ---
 
-### 🔤 Spellout → Hidden Message
+### 💬 Playlist with a Message
 *Make the music say it.*
 
-Want the song titles to spell "I LOVE YOU" or "HAPPY BIRTHDAY MARCO" when read top-to-bottom? Spellout finds the tracks. If a word can't be matched, it suggests slight edits that would work.
+Song titles, read top-to-bottom, spell out your message. Want the playlist to say "I LOVE YOU" or "HAPPY BIRTHDAY MARCO"? It finds the tracks. If a word can't be matched, it suggests slight edits that would work.
 
 ---
 

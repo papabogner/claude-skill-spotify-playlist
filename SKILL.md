@@ -14,7 +14,7 @@ Turns anything into a Spotify playlist. Uses the Spotify Web API via spotipy and
 | list of tracks / links | **Standard** | `playlist.py` |
 | photo / image | **Photo Vibe** | `photo_playlist.py` |
 | vinyl photo / shelf video | **Vinyl Scanner** | `vinyl_scanner.py` |
-| "titles spell ..." | **Spellout** | `spellout.py` |
+| "titles spell ..." | **Playlist with a Message** | `message_playlist.py` |
 | film name | **Film Vibe** | `photo_playlist.py --vibe` |
 | emotional text / letter | **Letter** | `photo_playlist.py --vibe` |
 
@@ -109,7 +109,7 @@ ffmpeg -i /path/to/video.mp4 -vf fps=1/3 /tmp/vinyl_frames/frame_%04d.jpg -y 2>/
 
 ---
 
-## Mode 4 — Spellout: Song Titles Spell a Message
+## Mode 4 — Playlist with a Message: Song Titles Spell It Out
 
 User wants song titles to spell out a word, phrase, or sentence.
 
@@ -117,7 +117,7 @@ User wants song titles to spell out a word, phrase, or sentence.
 Each WORD in the target text = a song title (or a song starting with that word).
 
 ```bash
-python3 ~/.claude/skills/spotify-playlist/spellout.py \
+python3 ~/.claude/skills/spotify-playlist/message_playlist.py \
   --text "I love you" \
   --mode word \
   --name "Secret Message"
@@ -127,7 +127,7 @@ python3 ~/.claude/skills/spotify-playlist/spellout.py \
 First LETTER of each song title spells the text (harder, more misses).
 
 ```bash
-python3 ~/.claude/skills/spotify-playlist/spellout.py \
+python3 ~/.claude/skills/spotify-playlist/message_playlist.py \
   --text "MARCO" \
   --mode letter \
   --name "For Marco"
@@ -202,5 +202,5 @@ brew install ffmpeg  # for video frame extraction
 | 403 Forbidden on playlist create | Add your email in Spotify Dashboard → User Management |
 | Token expired | Delete `~/.config/spotify-skill/token.json`, re-run |
 | Wrong track matched | Make input line more specific: add year or album |
-| Spellout word not found | Accept suggestion, rebuild with adjusted text |
+| Message word not found | Accept suggestion, rebuild with adjusted text |
 | ffmpeg not found | `brew install ffmpeg` |

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Acrostic Playlist — song titles spell out a message.
+Playlist with a Message — song titles, read in order, spell out a message.
 
 Two modes:
   word:   each WORD in the target text is a song title (or starts with that word)
   letter: first LETTER of each song title spells the text (harder, often needs suggestions)
 
 Usage:
-    acrostic.py --text "I love you" --mode word --name "Secret Message"
-    acrostic.py --text "HAPPY BIRTHDAY MARCO" --mode word --name "For Marco"
-    acrostic.py --text "SORRY" --mode letter --name "..."
+    message_playlist.py --text "I love you" --mode word --name "Secret Message"
+    message_playlist.py --text "HAPPY BIRTHDAY MARCO" --mode word --name "For Marco"
+    message_playlist.py --text "SORRY" --mode letter --name "..."
 """
 import argparse, json, sys, re
 from difflib import SequenceMatcher
